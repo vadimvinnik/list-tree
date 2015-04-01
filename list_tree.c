@@ -1,3 +1,7 @@
+/*
+   Vadim Vinnik, 2015, just for fun
+*/
+
 #include <assert.h>
 #include <stdlib.h>
 #include "list_tree.h"
@@ -85,9 +89,9 @@ traverse_status_t
 list_tree_traverse_depth(
     list_tree_node_t *root,
     list_tree_visitor_t pre_visitor,
-    list_tree_visitor_t post_visitor,
     list_tree_level_notifier_t descent,
     list_tree_level_notifier_t ascent,
+    list_tree_visitor_t post_visitor,
     void *state)
 {
   while (NULL != root)
@@ -111,9 +115,9 @@ list_tree_traverse_depth(
           status = list_tree_traverse_depth(
               root->first_child,
               pre_visitor,
-              post_visitor,
               descent,
               ascent,
+              post_visitor,
               state);
 
           if (traverse_ok == status)
@@ -260,9 +264,9 @@ list_tree_depth(
   traverse_status_t status = list_tree_traverse_depth(
       root,
       NULL,
-      NULL,
       list_tree_depth_tracker_on_enter,
       list_tree_depth_tracker_on_leave,
+      NULL,
       &state);
 
   assert(traverse_ok == status);
@@ -275,5 +279,4 @@ flatten(
     list_tree_node_t *root)
 {
 }
-
 
