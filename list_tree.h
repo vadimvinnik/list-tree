@@ -50,6 +50,12 @@ typedef
   (*list_tree_level_notifier_t)(
       void *state);
 
+typedef
+  int
+  (*predicate_t)(
+      void const* data,
+      void const* param);
+
 /*
    Abstraction from the underlying data structure
 */
@@ -139,8 +145,20 @@ size_t
 list_tree_depth(
     list_tree_node_t *root);
 
+list_tree_node_t*
+list_tree_find(
+    list_tree_node_t *root,
+    predicate_t predicate,
+    void *predicate_param);
+
+list_tree_node_t*
+list_tree_locate(
+    list_tree_node_t *root,
+    size_t const* path,
+    size_t length);
+
 void
-flatten(
+list_tree_flatten(
     list_tree_node_t *root);
 
 #endif

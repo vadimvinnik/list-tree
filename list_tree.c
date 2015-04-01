@@ -274,9 +274,71 @@ list_tree_depth(
   return state.max_depth;
 }
 
+typedef struct _find_state_t
+{
+  predicate_t predicate;
+  void *predicate_param;
+  list_tree_node_t *result;
+} find_state_t;
+
+static
+traverse_status_t
+list_tree_node_finder(
+    list_tree_node_t *node,
+    void *raw_state)
+{
+  find_state_t *state = (find_state_t*) raw_state;
+
+  int is_matching = state->predicate(
+      node->data,
+      state->predicate_param);
+
+  if (is_matching)
+    state->result = node;
+
+  return is_matching
+    ? traverse_break
+    : traverse_ok;
+}
+
+list_tree_node_t*
+list_tree_find(
+    list_tree_node_t *root,
+    predicate_t predicate,
+    void *predicate_param)
+{
+  find_state_t state =
+  {
+    predicate,
+    predicate_param,
+    NULL
+  };
+  
+  list_tree_traverse_depth(
+      root,
+      list_tree_node_finder,
+      NULL,
+      NULL,
+      NULL,
+      &state);
+
+  return state.result;
+}
+
+list_tree_node_t*
+list_tree_locate(
+    list_tree_node_t *root,
+    size_t const* path,
+    size_t length)
+{
+  // TODO
+  return NULL;
+}
+
 void
-flatten(
+list_tree_flatten(
     list_tree_node_t *root)
 {
+  // TODO
 }
 
