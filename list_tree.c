@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "list_tree.h"
 
 struct _list_tree_node_t {
@@ -287,7 +288,12 @@ list_tree_node_finder(
     list_tree_node_t *node,
     void *raw_state)
 {
+  assert(NULL != raw_state);
+
   find_state_t *state = (find_state_t*) raw_state;
+
+  assert(NULL != state->predicate);
+  assert(NULL == state->result);
 
   int is_matching = state->predicate(
       node->data,
@@ -325,14 +331,130 @@ list_tree_find(
   return state.result;
 }
 
+typedef struct _locate_state_t
+{
+  size_t *path;
+  size_t path_length;
+  list_tree_node_t *result;
+} locate_state_t;
+
+static
+traverse_status_t
+list_tree_node_locate_pre_visitor(
+    list_tree_node_t *node,
+    void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  locate_state_t *state = (locate_state_t*) raw_state;
+
+  assert(0 < state->path_length);
+  assert(NULL == state->result);
+  
+  if (0 == *state->path)
+  {
+    if (1 == state->path_length)
+    {
+      state->result = node;
+      return traverse_break;
+    }
+
+    return traverse_ok;
+  }
+  
+  -- *state->path;
+  return traverse_skip_this;
+}
+
+static
+traverse_status_t
+list_tree_node_locate_descent(
+    void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  locate_state_t *state = (locate_state_t*) raw_state;
+  
+  assert(0 == *state->path);
+  assert(1 < state->path_length);
+  assert(NULL == state->result);
+
+  -- state->path_length;
+  ++ state->path;
+
+  return traverse_ok;
+}
+
+static
+traverse_status_t
+list_tree_node_locate_ascent(
+    void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  locate_state_t *state = (locate_state_t*) raw_state;
+  assert(NULL == state->result);
+
+  return traverse_break;
+}
+
+static
+traverse_status_t
+list_tree_node_locate_post_visitor(
+    list_tree_node_t *node,
+    void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  locate_state_t *state = (locate_state_t*) raw_state;
+  assert(NULL == state->result);
+
+  return traverse_break;
+}
+
 list_tree_node_t*
 list_tree_locate(
     list_tree_node_t *root,
     size_t const* path,
-    size_t length)
+    size_t path_length)
 {
-  // TODO
-  return NULL;
+  size_t const path_size = sizeof(*path) * path_length;
+  size_t *path_copy = (size_t*) malloc(path_size);
+
+  locate_state_t state =
+  {
+    path_copy,
+    path_length,
+    NULL
+  };
+
+  memcpy(path_copy, path, path_size);
+
+  list_tree_traverse_depth(
+      root,
+      list_tree_node_locate_pre_visitor,
+      list_tree_node_locate_descent,
+      list_tree_node_locate_ascent,
+      list_tree_node_locate_post_visitor,
+      &state);
+
+#ifdef NDEBUG
+  if (NULL != state.result)
+  {
+    size_t *current = path_copy;
+    size_t * const end = path_copy + path_length;
+
+    while (end != current)
+    {
+      assert(0 == *current);
+      ++current;
+    }
+  }
+#endif
+
+  free(path_copy);
+
+  return state.result;
 }
 
 void

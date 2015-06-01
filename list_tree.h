@@ -11,6 +11,9 @@
 
 #include <stdlib.h>
 
+/*
+   The actual underlying data structure is hidden
+*/
 typedef
   struct _list_tree_node_t
   list_tree_node_t;
@@ -155,7 +158,7 @@ list_tree_node_t*
 list_tree_locate(
     list_tree_node_t *root,
     size_t const* path,
-    size_t length);
+    size_t path_length);
 
 void
 list_tree_flatten(
