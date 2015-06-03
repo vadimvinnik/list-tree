@@ -53,6 +53,14 @@ typedef
   (*list_tree_level_notifier_t)(
       void *state);
 
+/*
+  Type of a function that disposes a data item stored in a node
+*/
+typedef
+  void
+  (*data_disposer_t)(
+      void*);
+
 typedef
   int
   (*predicate_t)(
@@ -75,6 +83,8 @@ list_tree_get_first_child(
     list_tree_node_t *node);
 
 /*
+  Constructors
+
   Allocate a singleton list-tree holding the given data
 */
 list_tree_node_t*
@@ -106,6 +116,14 @@ list_tree_node_t*
 list_tree_prepend_child(
     list_tree_node_t *parent,
     void *data);
+
+/*
+  Destructor
+*/
+void
+list_tree_dispose(
+    list_tree_node_t *root,
+    data_disposer_t data_disposer);
 
 /*
   Traverse a list-tree in depth-first order applying call-backs

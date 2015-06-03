@@ -86,6 +86,46 @@ list_tree_prepend_child(
   return new_child;
 }
 
+typedef struct _dispose_state_t
+{
+  data_disposer_t disposer;
+} dispose_state_t;
+
+static
+traverse_status_t
+list_tree_dispose_post_visitor(
+      list_tree_node_t *node,
+      void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  dispose_state_t *state = (dispose_state_t*) raw_state;
+  data_disposer_t disposer = state->disposer;
+  
+  if (NULL != disposer)
+    disposer(node->data);
+
+  free(node);
+
+  return traverse_ok;
+}
+    
+void
+list_tree_dispose(
+    list_tree_node_t *root,
+    data_disposer_t data_disposer)
+{
+  dispose_state_t state = {data_disposer};
+
+  list_tree_traverse_depth(
+      root,
+      NULL,
+      NULL,
+      NULL,
+      list_tree_dispose_post_visitor,
+      &state);
+}
+
 traverse_status_t
 list_tree_traverse_depth(
     list_tree_node_t *root,
@@ -98,6 +138,8 @@ list_tree_traverse_depth(
   while (NULL != root)
   {
     traverse_status_t status;
+
+    list_tree_node_t * const next = root->next;
 
     status = (NULL == pre_visitor)
       ? traverse_ok
@@ -154,7 +196,7 @@ list_tree_traverse_depth(
         assert(0);
     }
 
-    root = root->next;
+    root = next;
   }
 
   return traverse_ok;
