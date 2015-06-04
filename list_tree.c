@@ -35,15 +35,24 @@ list_tree_get_first_child(
 }
 
 list_tree_node_t*
-list_tree_init(
+list_tree_make_singleton(
     void *data)
+{
+  return list_tree_make(data, NULL, NULL);
+}
+
+list_tree_node_t*
+list_tree_make(
+    void *data,
+    list_tree_node_t *next,
+    list_tree_node_t *first_child)
 {
   list_tree_node_t *node =
     (list_tree_node_t*) malloc(sizeof(list_tree_node_t));
 
   node->data = data;
-  node->next = NULL;
-  node->first_child = NULL;
+  node->next = next;
+  node->first_child = first_child;
 
   return node;
 }
@@ -51,14 +60,14 @@ list_tree_init(
 void
 list_tree_prepend(
     list_tree_node_t **first,
-    list_tree_node_t *singleton)
+    list_tree_node_t *tree)
 {
   assert(NULL != first);
-  assert(NULL != singleton);
-  assert(NULL == singleton->next);
+  assert(NULL != tree);
+  assert(NULL == tree->next);
 
-  singleton->next = *first;
-  *first = singleton;
+  tree->next = *first;
+  *first = tree;
 }
 
 void
@@ -75,10 +84,8 @@ list_tree_append(
 list_tree_node_t*
 list_tree_prepend_child(
     list_tree_node_t *parent,
-    void *data)
+    list_tree_node_t *new_child)
 {
-  list_tree_node_t *new_child = list_tree_init(data);
-
   list_tree_prepend(
       &parent->first_child,
       new_child);

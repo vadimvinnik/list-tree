@@ -84,12 +84,16 @@ list_tree_get_first_child(
 
 /*
   Constructors
-
-  Allocate a singleton list-tree holding the given data
 */
 list_tree_node_t*
-list_tree_init(
+list_tree_make_singleton(
     void *data);
+
+list_tree_node_t*
+list_tree_make(
+    void *data,
+    list_tree_node_t *next,
+    list_tree_node_t *first_child);
 
 /*
   Prepend the singleton list-tree to the given list-tree
@@ -98,7 +102,7 @@ list_tree_init(
 void
 list_tree_prepend(
     list_tree_node_t **first,
-    list_tree_node_t *singleton);
+    list_tree_node_t *tree);
 
 /*
   Given the last node, append a list-tree to it
@@ -115,7 +119,7 @@ list_tree_append(
 list_tree_node_t*
 list_tree_prepend_child(
     list_tree_node_t *parent,
-    void *data);
+    list_tree_node_t *new_child);
 
 /*
   Destructor
