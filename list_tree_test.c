@@ -41,11 +41,47 @@ make_test_tree()
                 list_tree_make(
                   wrap_int(0x4300),
                   NULL,
+                  list_tree_make(
+                    wrap_int(0x4310),
+                    list_tree_make(
+                      wrap_int(0x4320),
+                      list_tree_make(
+                        wrap_int(0x4330),
+                        NULL,
+                        NULL
+                      ),
+                      NULL
+                    ),
+                    NULL
+                  )
+                ),
+                list_tree_make(
+                  wrap_int(0x4210),
+                  list_tree_make(
+                    wrap_int(0x4220),
+                    list_tree_make(
+                      wrap_int(0x4230),
+                      NULL,
+                      NULL
+                    ),
+                    NULL
+                  ),
+                  NULL
+                )
+              ),
+              list_tree_make(
+                wrap_int(0x4110),
+                list_tree_make(
+                  wrap_int(0x4120),
+                  list_tree_make(
+                    wrap_int(0x4130),
+                    NULL,
+                    NULL
+                  ),
                   NULL
                 ),
                 NULL
-              ),
-              NULL
+              )
             )
           ),
           list_tree_make(
@@ -55,11 +91,47 @@ make_test_tree()
               list_tree_make(
                 wrap_int(0x3300),
                 NULL,
+                list_tree_make(
+                  wrap_int(0x3310),
+                  list_tree_make(
+                    wrap_int(0x3320),
+                    list_tree_make(
+                      wrap_int(0x3330),
+                      NULL,
+                      NULL
+                    ),
+                    NULL
+                  ),
+                  NULL
+                )
+              ),
+              list_tree_make(
+                wrap_int(0x3210),
+                list_tree_make(
+                  wrap_int(0x3220),
+                  list_tree_make(
+                    wrap_int(0x3230),
+                    NULL,
+                    NULL
+                  ),
+                  NULL
+                ),
+                NULL
+              )
+            ),
+            list_tree_make(
+              wrap_int(0x3110),
+              list_tree_make(
+                wrap_int(0x3120),
+                list_tree_make(
+                  wrap_int(0x3130),
+                  NULL,
+                  NULL
+                ),
                 NULL
               ),
               NULL
-            ),
-            NULL
+            )
           )
         ),
         list_tree_make(
@@ -177,12 +249,12 @@ wrapped_int_writer(
 {
   for (int i = 0; i < level; ++i)
   {
-    fputc(' ', output);
+    fputc('\t', output);
   }
 
   fprintf(
       output,
-      "%08X\n",
+      "%04X\n",
       unwrap_int(data));
 
   return 1;
