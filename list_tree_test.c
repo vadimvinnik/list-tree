@@ -105,7 +105,7 @@ wrapped_int_writer(
 
 int main()
 {
-  list_tree_node_t *tree = make_test_tree(3, 4);
+  list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
 
   list_tree_write(
       tree,

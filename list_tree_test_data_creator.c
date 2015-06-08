@@ -8,7 +8,7 @@ typedef struct _bound_t
 } bound_t;
 
 static
-int packed_int_generator(
+int wrapped_int_generator(
     path_item_t const* path,
     void *raw_state,
     void **data)
@@ -44,7 +44,7 @@ int packed_int_generator(
 }
 
 list_tree_node_t*
-make_test_tree(
+make_wrapped_int_tree(
     size_t length,
     size_t depth)
 {
@@ -55,7 +55,7 @@ make_test_tree(
   };
 
   return list_tree_generate(
-      packed_int_generator,
+      wrapped_int_generator,
       &bound);
 }
 

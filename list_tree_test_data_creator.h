@@ -4,7 +4,7 @@
 #include "list_tree.h"
 
 list_tree_node_t*
-make_test_tree(
+make_wrapped_int_tree(
     size_t length,
     size_t depth);
 
