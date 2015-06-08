@@ -7,6 +7,7 @@ EXECUTABLE = list_tree_test
 SOURCES = \
 	list_tree.c \
 	list_tree_test.c \
+	list_tree_test_data_creator.c \
 
 DEPENDENCIES = $(SOURCES:.c=.d)
 OBJECTS = $(SOURCES:.c=.o)
