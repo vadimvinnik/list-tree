@@ -6,162 +6,61 @@
 
 #include "list_tree.h"
 
-static
-void*
-wrap_int(int x)
+typedef struct _bound_t
 {
-  return (void*) (long) x;
-}
+  size_t length;
+  size_t depth;
+} bound_t;
 
 static
-int
-unwrap_int(void* p)
+int packed_int_generator(
+    path_item_t const* path,
+    void *raw_state,
+    void **data)
 {
-  return (int) (long) p;
+  bound_t *state = (bound_t*) raw_state;
+
+  if (path->index == state->length)
+    return 0;
+
+  size_t depth = 0;
+  path_item_t const* current = path;
+  while (NULL != current && depth != state->depth)
+  {
+    ++depth;
+    current = current->prev;
+  }
+
+  if (depth == state->depth)
+    return 0;
+
+  long result = 0L;
+  depth = 0;
+  current = path;
+  while (NULL != current)
+  {
+    result += (1 + current->index) << (4 * depth);
+    ++depth;
+    current = current->prev;
+  }
+
+  *data = (void*) result;
+  return 1;
 }
 
 static
 list_tree_node_t*
-make_test_tree()
+make_test_tree(size_t length, size_t depth)
 {
-  return
-    list_tree_make(
-      wrap_int(0x1000),
-      list_tree_make(
-        wrap_int(0x2000),
-        list_tree_make(
-          wrap_int(0x3000),
-          list_tree_make(
-            wrap_int(0x4000),
-            NULL,
-            list_tree_make(
-              wrap_int(0x4100),
-              list_tree_make(
-                wrap_int(0x4200),
-                list_tree_make(
-                  wrap_int(0x4300),
-                  NULL,
-                  list_tree_make(
-                    wrap_int(0x4310),
-                    list_tree_make(
-                      wrap_int(0x4320),
-                      list_tree_make(
-                        wrap_int(0x4330),
-                        NULL,
-                        NULL
-                      ),
-                      NULL
-                    ),
-                    NULL
-                  )
-                ),
-                list_tree_make(
-                  wrap_int(0x4210),
-                  list_tree_make(
-                    wrap_int(0x4220),
-                    list_tree_make(
-                      wrap_int(0x4230),
-                      NULL,
-                      NULL
-                    ),
-                    NULL
-                  ),
-                  NULL
-                )
-              ),
-              list_tree_make(
-                wrap_int(0x4110),
-                list_tree_make(
-                  wrap_int(0x4120),
-                  list_tree_make(
-                    wrap_int(0x4130),
-                    NULL,
-                    NULL
-                  ),
-                  NULL
-                ),
-                NULL
-              )
-            )
-          ),
-          list_tree_make(
-            wrap_int(0x3100),
-            list_tree_make(
-              wrap_int(0x3200),
-              list_tree_make(
-                wrap_int(0x3300),
-                NULL,
-                list_tree_make(
-                  wrap_int(0x3310),
-                  list_tree_make(
-                    wrap_int(0x3320),
-                    list_tree_make(
-                      wrap_int(0x3330),
-                      NULL,
-                      NULL
-                    ),
-                    NULL
-                  ),
-                  NULL
-                )
-              ),
-              list_tree_make(
-                wrap_int(0x3210),
-                list_tree_make(
-                  wrap_int(0x3220),
-                  list_tree_make(
-                    wrap_int(0x3230),
-                    NULL,
-                    NULL
-                  ),
-                  NULL
-                ),
-                NULL
-              )
-            ),
-            list_tree_make(
-              wrap_int(0x3110),
-              list_tree_make(
-                wrap_int(0x3120),
-                list_tree_make(
-                  wrap_int(0x3130),
-                  NULL,
-                  NULL
-                ),
-                NULL
-              ),
-              NULL
-            )
-          )
-        ),
-        list_tree_make(
-          wrap_int(0x2100),
-          list_tree_make(
-            wrap_int(0x2200),
-            list_tree_make(
-              wrap_int(0x2300),
-              NULL,
-              NULL
-            ),
-            NULL
-          ),
-          NULL
-        )
-      ),
-      list_tree_make(
-        wrap_int(0x1100),
-        list_tree_make(
-          wrap_int(0x1200),
-          list_tree_make(
-            wrap_int(0x1300),
-            NULL,
-            NULL
-          ),
-          NULL
-        ),
-        NULL
-      )
-    );
+  bound_t bound =
+  {
+    length,
+    depth
+  };
+
+  return list_tree_generate(
+      packed_int_generator,
+      &bound);
 }
 
 typedef
@@ -254,15 +153,15 @@ wrapped_int_writer(
 
   fprintf(
       output,
-      "%04X\n",
-      unwrap_int(data));
+      "%4lX\n",
+      (long)data);
 
   return 1;
 }
 
 int main()
 {
-  list_tree_node_t *tree = make_test_tree();
+  list_tree_node_t *tree = make_test_tree(3, 4);
 
   list_tree_write(
       tree,
