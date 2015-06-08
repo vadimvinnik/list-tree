@@ -18,6 +18,19 @@ typedef
   struct _list_tree_node_t
   list_tree_node_t;
 
+typedef struct _path_item_t
+{
+  size_t index;
+  struct _path_item_t const* prev;
+} path_item_t;
+
+typedef
+  int
+  (*node_generator_t)(
+      path_item_t const* path,
+      void *state,
+      void **data);
+
 /*
    When returned from visiting callback functions, indicate the further
    mode of operation, see list_tree_traverse_depth for more detail
@@ -94,6 +107,11 @@ list_tree_make(
     void *data,
     list_tree_node_t *next,
     list_tree_node_t *first_child);
+
+list_tree_node_t*
+list_tree_generate(
+    node_generator_t generator,
+    void *state);
 
 /*
   Prepend the singleton list-tree to the given list-tree

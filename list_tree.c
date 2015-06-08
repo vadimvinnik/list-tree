@@ -57,6 +57,66 @@ list_tree_make(
   return node;
 }
 
+static
+list_tree_node_t*
+list_tree_generate_helper(
+    node_generator_t generator,
+    path_item_t const* path,
+    void *state)
+{
+  assert(NULL != path);
+  void *data;
+
+  int is_existing = generator(path, state, &data);
+
+  if (!is_existing)
+    return NULL;
+
+  path_item_t child_path =
+  {
+    0,
+    path
+  };
+
+  list_tree_node_t *child = list_tree_generate_helper(
+      generator,
+      &child_path,
+      state);
+
+  path_item_t next_path =
+  {
+    path->index + 1,
+    path->prev
+  };
+
+  list_tree_node_t *next = list_tree_generate_helper(
+      generator,
+      &next_path,
+      state);
+
+  return list_tree_make(
+      data,
+      next,
+      child);
+}
+
+list_tree_node_t*
+list_tree_generate(
+    node_generator_t generator,
+    void *state)
+{
+  path_item_t root =
+  {
+    0,
+    NULL
+  };
+
+  return list_tree_generate_helper(
+      generator,
+      &root,
+      state);
+}
+
 void
 list_tree_prepend(
     list_tree_node_t **first,
