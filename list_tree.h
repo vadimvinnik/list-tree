@@ -1,14 +1,16 @@
 /*
-   Each node has a link to the next node that makes a single-linked list.
-   Except this, the node has a link to the child node.  Since that child,
-   in its turn, is a head of a list, this makes a tree.
+   Each node has a link to the next node that makes a linked list.
+   The node has a link to a child node.  Since that child, in its
+   turn, is a head of a list, this makes a tree.
 
    Vadim Vinnik, 2015, just for fun
+   vadim.vinnik@gmail.com
 */
 
 #ifndef _LIST_TREE_H_
 #define _LIST_TREE_H_
 
+#include <stdio.h>
 #include <stdlib.h>
 
 typedef
@@ -61,11 +63,18 @@ typedef
   (*data_disposer_t)(
       void*);
 
+/* Callback to check whether node data meets a condition */
 typedef
   int
   (*predicate_t)(
       void const* data,
       void const* param);
+
+/* Callback to write node data to a file */
+typedef
+int (*data_writer_t)(
+    FILE *output,
+    void *data);
 
 /* Getters */
 void*
@@ -178,5 +187,15 @@ list_tree_locate(
     list_tree_node_t *root,
     size_t const* path,
     size_t path_length);
+
+/* Output */
+int
+list_tree_write(
+    list_tree_node_t *root,
+    data_writer_t writer,
+    FILE *output,
+    char const* indent,
+    char const* opening_tag,
+    char const* closing_tag);
 
 #endif
