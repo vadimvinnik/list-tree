@@ -566,10 +566,3 @@ list_tree_locate(
   return state.result;
 }
 
-void
-list_tree_flatten(
-    list_tree_node_t *root)
-{
-  // TODO
-}
-

@@ -11,9 +11,6 @@
 
 #include <stdlib.h>
 
-/*
-   The actual underlying data structure is hidden
-*/
 typedef
   struct _list_tree_node_t
   list_tree_node_t;
@@ -31,10 +28,7 @@ typedef
       void *state,
       void **data);
 
-/*
-   When returned from visiting callback functions, indicate the further
-   mode of operation, see list_tree_traverse_depth for more detail
-*/
+/* See list_tree_traverse_depth for more detail */
 enum _traverse_status_t
 {
   traverse_ok,
@@ -47,10 +41,7 @@ typedef
   enum _traverse_status_t
   traverse_status_t;
 
-/*
-   Type of the function to be called for each node
-   before and after visiting a subtree
-*/
+/* Callback before and after visiting a subtree */
 typedef
   traverse_status_t
   (*list_tree_visitor_t)(
@@ -58,17 +49,13 @@ typedef
       void *state);
 
 /*
-   Type of the function to be called when diving
-   into or returning from a subtree
-*/
+   Callback on entering or exiting a subtree */
 typedef
   traverse_status_t
   (*list_tree_level_notifier_t)(
       void *state);
 
-/*
-  Type of a function that disposes a data item stored in a node
-*/
+/* Callback to dispose data stored in a node */
 typedef
   void
   (*data_disposer_t)(
@@ -80,9 +67,7 @@ typedef
       void const* data,
       void const* param);
 
-/*
-   Abstraction from the underlying data structure
-*/
+/* Getters */
 void*
 list_tree_get_data(
     list_tree_node_t *node);
@@ -95,9 +80,7 @@ list_tree_node_t*
 list_tree_get_first_child(
     list_tree_node_t *node);
 
-/*
-  Constructors
-*/
+/* Constructors */
 list_tree_node_t*
 list_tree_make_singleton(
     void *data);
@@ -113,59 +96,54 @@ list_tree_generate(
     node_generator_t generator,
     void *state);
 
-/*
-  Prepend the singleton list-tree to the given list-tree
-  and set the pointer to the new head
-*/
+/* Modifiers */
 void
 list_tree_prepend(
     list_tree_node_t **first,
     list_tree_node_t *tree);
 
-/*
-  Given the last node, append a list-tree to it
-*/
 void
 list_tree_append(
     list_tree_node_t *last,
     list_tree_node_t *appendant);
 
-/*
-  Given a list-tree node, prepend a new child node
-  holding the given data
-*/
 list_tree_node_t*
 list_tree_prepend_child(
     list_tree_node_t *parent,
     list_tree_node_t *new_child);
 
-/*
-  Destructor
-*/
+/* Destructor */
 void
 list_tree_dispose(
     list_tree_node_t *root,
     data_disposer_t data_disposer);
 
 /*
-  Traverse a list-tree in depth-first order applying call-backs
-  for each node and on each level change.
-
-  For each node, callbacks are applied normally in the following order:
+  Traverse a list-tree in depth-first order invoking call-backs,
+  normally in the following order:
   - pre_visitor;
-  - if the node has children:
+  - if the node has a first child:
     - descent;
-    - entire traversal starting from the first child;
+    - traverse from the first child;
     - ascent;
   - post_visitor;
-  and then do the same with the next node.
+  - traverse from the next node, if any.
 
-  Each callback returns a value indicating the further mode of
-  operation:
-   - continue with the next callback in the normal order;
-   - skip this node, i.e. skip all remaining callbacks for this node;
-   - skip this level, i.e. return to the parent node (if any);
-   - break the entire traversal process.
+  Each callback returns a value of type traverse_status_t
+  indicating the further mode of operation:
+  
+  traverse_ok
+    continue with the next callback in the normal order;
+  traverse_skip_this
+    skip all remaining callbacks for this node;
+  traverse_skip_level
+    skip this level, return to the parent node (if any);
+  traverse_break
+    break the entire traversal process.
+
+  Returns:
+  - traverse_ok if all nodes were visited;
+  - traverse_break if one of callbacks signaled break;
 */
 traverse_status_t
 list_tree_traverse_depth(
@@ -176,6 +154,7 @@ list_tree_traverse_depth(
     list_tree_visitor_t post_visitor,
     void *state);
 
+/* Various functions */
 size_t
 list_tree_size(
     list_tree_node_t *root);
@@ -199,9 +178,5 @@ list_tree_locate(
     list_tree_node_t *root,
     size_t const* path,
     size_t path_length);
-
-void
-list_tree_flatten(
-    list_tree_node_t *root);
 
 #endif
