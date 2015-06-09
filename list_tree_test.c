@@ -134,9 +134,39 @@ test_find()
 
   list_tree_node_t *good_node = find_wrapped_int(tree, good_key);
 
+  assert(NULL != good_node);
   assert(good_key == (int) (long) list_tree_get_data(good_node));
 
   list_tree_node_t *bad_node = find_wrapped_int(tree, bad_key);
+
+  assert(NULL == bad_node);
+
+  list_tree_dispose(tree, NULL);
+}
+
+static
+void
+test_locate()
+{
+  static const int good_path_length = 4;
+  static const int bad_path_length = 6;
+  static const size_t path[] = { 1, 0, 2, 1, 2, 5 };
+  static const int good_key = 0x2132;
+
+  list_tree_node_t *tree = make_test_object();
+
+  list_tree_node_t *good_node = list_tree_locate(
+      tree,
+      path,
+      good_path_length);
+
+  assert(NULL != good_node);
+  assert(good_key == (int) (long) list_tree_get_data(good_node));
+
+  list_tree_node_t *bad_node = list_tree_locate(
+      tree,
+      path,
+      bad_path_length);
 
   assert(NULL == bad_node);
 
@@ -149,6 +179,9 @@ int main()
   test_memory();
   test_metrics();
   test_find();
+  test_locate();
+
+  fputs("All tests passed\n", stdout);
 
   return 0;
 }
