@@ -3,7 +3,9 @@
    vadim.vinnik@gmail.com
 */
 
+#include <assert.h>
 #include <stdio.h>
+#include <malloc.h>
 
 #include "list_tree.h"
 #include "list_tree_test_data_creator.h"
@@ -47,10 +49,30 @@ test_print()
   list_tree_dispose(tree, NULL);
 }
 
+static
+void
+test_memory()
+{
+  int free_before_create = mallinfo().fordblks;
+
+  list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
+
+  int free_after_create = mallinfo().fordblks;
+
+  assert(free_after_create < free_before_create);
+
+  list_tree_dispose(tree, NULL);
+
+  int free_after_dispose = mallinfo().fordblks;
+
+  assert(free_before_create == free_after_dispose);
+}
+
 int main()
 {
   test_print();
-  
+  test_memory();
+
   return 0;
 }
 
