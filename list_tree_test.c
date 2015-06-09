@@ -10,6 +10,18 @@
 #include "list_tree.h"
 #include "list_tree_test_data_creator.h"
 
+static int const test_tree_length = 3;
+static int const test_tree_depth = 4;
+
+static
+list_tree_node_t*
+make_test_object()
+{
+  return make_wrapped_int_tree(
+      test_tree_length,
+      test_tree_depth);
+}
+
 static
 int
 wrapped_int_writer(
@@ -42,7 +54,7 @@ static
 void
 test_print()
 {
-  list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
+  list_tree_node_t *tree = make_test_object();
 
   list_tree_print(tree);
 
@@ -55,7 +67,7 @@ test_memory()
 {
   int free_before_create = mallinfo().fordblks;
 
-  list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
+  list_tree_node_t *tree = make_test_object();
 
   int free_after_create = mallinfo().fordblks;
 
@@ -68,10 +80,33 @@ test_memory()
   assert(free_before_create == free_after_dispose);
 }
 
+static
+void
+test_metrics()
+{
+  list_tree_node_t *tree = make_test_object();
+
+  assert(list_tree_length(tree) == test_tree_length);
+  assert(list_tree_depth(tree) == test_tree_depth);
+
+  size_t expected_size = 0;
+  size_t level_count = 1;
+  for (int i = 0; i < test_tree_depth; ++i)
+  {
+    level_count *= test_tree_length;
+    expected_size += level_count;
+  }
+
+  assert(list_tree_size(tree) == expected_size);
+
+  list_tree_dispose(tree, NULL);
+}
+
 int main()
 {
   test_print();
   test_memory();
+  test_metrics();
 
   return 0;
 }

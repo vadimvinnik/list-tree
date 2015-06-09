@@ -20,13 +20,13 @@ int wrapped_int_generator(
 
   size_t depth = 0;
   path_item_t const* current = path;
-  while (NULL != current && depth != state->depth)
+  while (NULL != current && depth != state->depth + 1)
   {
     ++depth;
     current = current->prev;
   }
 
-  if (depth == state->depth)
+  if (depth == state->depth + 1)
     return 0;
 
   long result = 0L;

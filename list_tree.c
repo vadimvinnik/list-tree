@@ -382,7 +382,7 @@ list_tree_depth(
 
   assert(traverse_ok == status);
 
-  return state.max_depth;
+  return state.max_depth + 1;
 }
 
 typedef struct _find_state_t
