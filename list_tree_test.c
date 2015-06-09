@@ -102,11 +102,53 @@ test_metrics()
   list_tree_dispose(tree, NULL);
 }
 
+static
+int
+wrapped_int_comparer(
+    void const* data,
+    void const* param)
+{
+  return (int) (long) data == (int) (long) param;
+}
+
+static
+list_tree_node_t*
+find_wrapped_int(
+    list_tree_node_t *tree,
+    int key)
+{
+  return list_tree_find(
+      tree,
+      wrapped_int_comparer,
+      (void*) (long) key);
+}
+
+static
+void
+test_find()
+{
+  static const int good_key = 0x213;
+  static const int bad_key = 0x273;
+
+  list_tree_node_t *tree = make_test_object();
+
+  list_tree_node_t *good_node = find_wrapped_int(tree, good_key);
+
+  assert(good_key == (int) (long) list_tree_get_data(good_node));
+
+  list_tree_node_t *bad_node = find_wrapped_int(tree, bad_key);
+
+  assert(NULL == bad_node);
+
+  list_tree_dispose(tree, NULL);
+}
+
 int main()
 {
   test_print();
   test_memory();
   test_metrics();
+  test_find();
 
   return 0;
 }
