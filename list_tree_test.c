@@ -22,6 +22,7 @@ wrapped_int_writer(
   return 1;
 }
 
+static
 void
 list_tree_print(
     list_tree_node_t *root)
@@ -35,12 +36,21 @@ list_tree_print(
       NULL);
 }
 
-int main()
+static
+void
+test_print()
 {
   list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
 
   list_tree_print(tree);
 
+  list_tree_dispose(tree, NULL);
+}
+
+int main()
+{
+  test_print();
+  
   return 0;
 }
 
