@@ -10,15 +10,16 @@
 typedef
 int (*data_writer_t)(
     FILE *output,
-    void *data,
-    int level);
+    void *data);
 
 typedef struct _write_state_t
 {
   int level;
   data_writer_t writer;
   FILE *output;
-  int indent;
+  char const* indent;
+  char const* opening_tag;
+  char const* closing_tag;
 } write_state_t;
 
 static
@@ -29,10 +30,17 @@ write_pre_visitor(
 {
   write_state_t *state = (write_state_t*) raw_state;
 
+  if (NULL != state->indent)
+  {
+    for (int i = 0; i < state->level; ++i)
+    {
+      fputs(state->indent, state->output);
+    }
+  }
+
   int result = state->writer(
       state->output,
-      list_tree_get_data(node),
-      state->level);
+      list_tree_get_data(node));
 
   return result ? traverse_ok : traverse_break;
 }
@@ -43,6 +51,10 @@ write_descent(
     void *raw_state)
 {
   write_state_t *state = (write_state_t*) raw_state;
+
+  if (NULL != state->opening_tag)
+    fputs(state->opening_tag, state->output);
+
   ++ state->level;
   return traverse_ok;
 }
@@ -53,6 +65,10 @@ write_ascent(
     void *raw_state)
 {
   write_state_t *state = (write_state_t*) raw_state;
+
+  if (NULL != state->closing_tag)
+    fputs(state->closing_tag, state->output);
+
   -- state->level;
   return traverse_ok;
 }
@@ -62,14 +78,18 @@ list_tree_write(
     list_tree_node_t *root,
     data_writer_t writer,
     FILE *output,
-    int indent)
+    char const* indent,
+    char const* opening_tag,
+    char const* closing_tag)
 {
   write_state_t state =
   {
     0,
     writer,
     output,
-    indent
+    indent,
+    opening_tag,
+    closing_tag
   };
 
   traverse_status_t result = list_tree_traverse_depth(
@@ -87,14 +107,8 @@ static
 int
 wrapped_int_writer(
     FILE *output,
-    void *data,
-    int level)
+    void *data)
 {
-  for (int i = 0; i < level; ++i)
-  {
-    fputc('\t', output);
-  }
-
   fprintf(
       output,
       "%4lX\n",
@@ -103,15 +117,25 @@ wrapped_int_writer(
   return 1;
 }
 
+void
+list_tree_print(
+    list_tree_node_t *root)
+{
+  list_tree_write(
+      root,
+      wrapped_int_writer,
+      stdout,
+      "\t",
+      NULL,
+      NULL);
+
+}
+
 int main()
 {
   list_tree_node_t *tree = make_wrapped_int_tree(3, 4);
 
-  list_tree_write(
-      tree,
-      wrapped_int_writer,
-      stdout,
-      2);
+  list_tree_print(tree);
 
   return 0;
 }
