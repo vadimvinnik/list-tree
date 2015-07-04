@@ -160,7 +160,7 @@ typedef struct _dispose_state_t
 } dispose_state_t;
 
 static
-traverse_status_t
+void
 list_tree_dispose_post_visitor(
       list_tree_node_t *node,
       void *raw_state)
@@ -174,8 +174,6 @@ list_tree_dispose_post_visitor(
     disposer(node->data);
 
   free(node);
-
-  return traverse_ok;
 }
     
 void
@@ -190,141 +188,147 @@ list_tree_dispose(
       NULL,
       NULL,
       NULL,
+      NULL,
+      NULL,
       list_tree_dispose_post_visitor,
       &state);
 }
 
-traverse_status_t
-list_tree_traverse_depth(
-    list_tree_node_t *root,
-    list_tree_visitor_t pre_visitor,
-    list_tree_level_notifier_t descent,
-    list_tree_level_notifier_t ascent,
-    list_tree_visitor_t post_visitor,
+static
+void
+list_tree_traverse_subtree(
+    list_tree_node_t *node,
+    list_tree_enter_notifier_t enter,
+    list_tree_leave_notifier_t leave,
+    list_tree_pre_visitor_t pre_visitor,
+    list_tree_enter_notifier_t descent,
+    list_tree_leave_notifier_t ascent,
+    list_tree_enter_notifier_t forward,
+    list_tree_leave_notifier_t backward,
+    list_tree_post_visitor_t post_visitor,
     void *state)
 {
-  while (NULL != root)
+  if (NULL == node)
+    return;
+
+  if ((NULL == enter) || enter(state))
   {
-    traverse_status_t status;
+    list_tree_traverse_depth(
+        node,
+        pre_visitor,
+        descent,
+        ascent,
+        forward,
+        backward,
+        post_visitor,
+        state);
 
-    list_tree_node_t * const next = root->next;
-
-    status = (NULL == pre_visitor)
-      ? traverse_ok
-      : pre_visitor(root, state);
-
-    if (traverse_ok == status)
-    {
-      if (NULL != root->first_child)
-      {
-        status = (NULL == descent)
-          ? traverse_ok
-          : descent(state);
-
-        if (traverse_ok == status)
-        {
-          status = list_tree_traverse_depth(
-              root->first_child,
-              pre_visitor,
-              descent,
-              ascent,
-              post_visitor,
-              state);
-
-          if (traverse_ok == status)
-          {
-            status = (NULL == ascent)
-              ? traverse_ok
-              : ascent(state);
-          }
-        }
-      }
-
-      if (traverse_ok == status)
-      {
-        status = (NULL == post_visitor)
-          ? traverse_ok
-          : post_visitor(root, state);
-      }
-    }
-
-    switch (status)
-    {
-      case traverse_ok:
-      case traverse_skip_this:
-        break;
-
-      case traverse_skip_level:
-        return traverse_ok;
-
-      case traverse_break:
-        return traverse_break;
-
-      default:
-        assert(0);
-    }
-
-    root = next;
+    if (NULL != leave)
+      leave(state);
   }
-
-  return traverse_ok;
 }
 
-typedef struct _node_counter_state_t
+void
+list_tree_traverse_depth(
+    list_tree_node_t *root,
+    list_tree_pre_visitor_t pre_visitor,
+    list_tree_enter_notifier_t descent,
+    list_tree_leave_notifier_t ascent,
+    list_tree_enter_notifier_t forward,
+    list_tree_leave_notifier_t backward,
+    list_tree_post_visitor_t post_visitor,
+    void *state)
 {
-  size_t count;
-  traverse_status_t mode;
-} node_counter_state_t;
+  if (NULL == root)
+    return;
+
+  if ((NULL == pre_visitor) || pre_visitor(root, state))
+  {
+    list_tree_traverse_subtree(
+        root->first_child,
+        descent,
+        ascent,
+        pre_visitor,
+        descent,
+        ascent,
+        forward,
+        backward,
+        post_visitor,
+        state);
+
+    list_tree_traverse_subtree(
+        root->next,
+        forward,
+        backward,
+        pre_visitor,
+        descent,
+        ascent,
+        forward,
+        backward,
+        post_visitor,
+        state);
+
+    if (NULL != post_visitor)
+      post_visitor(root, state);
+  }
+}
+
+int
+enter_false(
+    void *_)
+{
+  return 0;
+}
 
 static
-traverse_status_t
+int
 list_tree_node_counter(
-    list_tree_node_t *node,
+    list_tree_node_t *_,
     void *raw_state)
 {
   assert(NULL != raw_state);
 
-  node_counter_state_t *state =
-    (node_counter_state_t*) raw_state;
+  size_t *state =
+    (size_t*) raw_state;
 
-  ++ state->count;
+  ++ *state;
 
-  return state->mode;
+  return 1;
 }
 
 static
 size_t
 list_tree_count_nodes(
     list_tree_node_t *root,
-    traverse_status_t mode)
+    list_tree_enter_notifier_t descent)
 {
-  node_counter_state_t state = { 0, mode };
+  size_t count = 0;
 
-  traverse_status_t status = list_tree_traverse_depth(
+  list_tree_traverse_depth(
       root,
       list_tree_node_counter,
+      descent,
       NULL,
       NULL,
       NULL,
-      &state);
+      NULL,
+      &count);
 
-  assert(traverse_ok == status);
-
-  return state.count;
+  return count;
 }
 
 size_t
 list_tree_size(
     list_tree_node_t *root)
 {
-  return list_tree_count_nodes(root, traverse_ok);
+  return list_tree_count_nodes(root, NULL);
 }
 
 size_t
 list_tree_length(
     list_tree_node_t *root)
 {
-  return list_tree_count_nodes(root, traverse_skip_this);
+  return list_tree_count_nodes(root, enter_false);
 }
 
 typedef struct _depth_counter_t
@@ -334,8 +338,8 @@ typedef struct _depth_counter_t
 } depth_counter_t;
 
 static
-traverse_status_t
-list_tree_depth_tracker_on_enter(
+int
+list_tree_depth_descent(
     void *raw_state)
 {
   assert(NULL != raw_state);
@@ -345,12 +349,12 @@ list_tree_depth_tracker_on_enter(
 
   ++ state->current_depth;
 
-  return traverse_ok;
+  return 1;
 }
 
 static
-traverse_status_t
-list_tree_depth_tracker_on_leave(
+void
+list_tree_depth_ascent(
     void *raw_state)
 {
   assert(NULL != raw_state);
@@ -362,25 +366,26 @@ list_tree_depth_tracker_on_leave(
     state->max_depth = state->current_depth;
 
   -- state->current_depth;
-
-  return traverse_ok;
 }
 
 size_t
 list_tree_depth(
     list_tree_node_t *root)
 {
+  if (NULL == root)
+    return 0;
+
   depth_counter_t state = { 0, 0 };
 
-  traverse_status_t status = list_tree_traverse_depth(
+  list_tree_traverse_depth(
       root,
       NULL,
-      list_tree_depth_tracker_on_enter,
-      list_tree_depth_tracker_on_leave,
+      list_tree_depth_descent,
+      list_tree_depth_ascent,
+      NULL,
+      NULL,
       NULL,
       &state);
-
-  assert(traverse_ok == status);
 
   return state.max_depth + 1;
 }
@@ -393,8 +398,8 @@ typedef struct _find_state_t
 } find_state_t;
 
 static
-traverse_status_t
-list_tree_node_finder(
+int
+list_tree_node_find_pre_visitor(
     list_tree_node_t *node,
     void *raw_state)
 {
@@ -403,7 +408,9 @@ list_tree_node_finder(
   find_state_t *state = (find_state_t*) raw_state;
 
   assert(NULL != state->predicate);
-  assert(NULL == state->result);
+
+  if (NULL != state->result)
+    return 0;
 
   int is_matching = state->predicate(
       node->data,
@@ -412,9 +419,7 @@ list_tree_node_finder(
   if (is_matching)
     state->result = node;
 
-  return is_matching
-    ? traverse_break
-    : traverse_ok;
+  return !is_matching;
 }
 
 list_tree_node_t*
@@ -432,7 +437,9 @@ list_tree_find(
   
   list_tree_traverse_depth(
       root,
-      list_tree_node_finder,
+      list_tree_node_find_pre_visitor,
+      NULL,
+      NULL,
       NULL,
       NULL,
       NULL,
@@ -443,83 +450,101 @@ list_tree_find(
 
 typedef struct _locate_state_t
 {
-  size_t *path;
+  size_t const* path;
   size_t path_length;
+  size_t count;
   list_tree_node_t *result;
 } locate_state_t;
 
 static
-traverse_status_t
+int
 list_tree_node_locate_pre_visitor(
-    list_tree_node_t *node,
+    list_tree_node_t* node,
     void *raw_state)
 {
   assert(NULL != raw_state);
 
   locate_state_t *state = (locate_state_t*) raw_state;
 
-  assert(0 < state->path_length);
+  assert(0 <= state->path_length);
   assert(NULL == state->result);
+  assert(state->count <= *state->path);
   
-  if (0 == *state->path)
+  if (state->count == *state->path && 1 == state->path_length)
   {
-    if (1 == state->path_length)
-    {
-      state->result = node;
-      return traverse_break;
-    }
-
-    return traverse_ok;
+    state->result = node;
+    return 0;
   }
   
-  -- *state->path;
-  return traverse_skip_this;
+  return 1;
 }
 
 static
-traverse_status_t
+int
 list_tree_node_locate_descent(
     void *raw_state)
 {
   assert(NULL != raw_state);
 
   locate_state_t *state = (locate_state_t*) raw_state;
+
+  if (NULL != state->result || state->count != *state->path)
+    return 0;
   
-  assert(0 == *state->path);
   assert(1 < state->path_length);
-  assert(NULL == state->result);
 
-  -- state->path_length;
+  state->count = 0;
   ++ state->path;
+  -- state->path_length;
 
-  return traverse_ok;
+  return 1;
 }
 
 static
-traverse_status_t
+void
 list_tree_node_locate_ascent(
     void *raw_state)
 {
   assert(NULL != raw_state);
 
   locate_state_t *state = (locate_state_t*) raw_state;
-  assert(NULL == state->result);
 
-  return traverse_break;
+  assert(0 == state->count);
+  
+  ++ state->path_length;
+  -- state->path;
+  state->count = *state->path;
 }
 
 static
-traverse_status_t
-list_tree_node_locate_post_visitor(
-    list_tree_node_t *node,
+int
+list_tree_node_locate_forward(
     void *raw_state)
 {
   assert(NULL != raw_state);
 
   locate_state_t *state = (locate_state_t*) raw_state;
-  assert(NULL == state->result);
 
-  return traverse_break;
+  if (NULL != state->result || state->count >= *state->path)
+    return 0;
+  
+  ++ state->count;
+
+  return 1;
+}
+
+static
+void
+list_tree_node_locate_backward(
+    void *raw_state)
+{
+  assert(NULL != raw_state);
+
+  locate_state_t *state = (locate_state_t*) raw_state;
+
+  assert(0 < state->count);
+  
+  -- state->count;
 }
 
 list_tree_node_t*
@@ -528,41 +553,27 @@ list_tree_locate(
     size_t const* path,
     size_t path_length)
 {
-  size_t const path_size = sizeof(*path) * path_length;
-  size_t *path_copy = (size_t*) malloc(path_size);
-
   locate_state_t state =
   {
-    path_copy,
+    path,
     path_length,
+    0,
     NULL
   };
-
-  memcpy(path_copy, path, path_size);
 
   list_tree_traverse_depth(
       root,
       list_tree_node_locate_pre_visitor,
       list_tree_node_locate_descent,
       list_tree_node_locate_ascent,
-      list_tree_node_locate_post_visitor,
+      list_tree_node_locate_forward,
+      list_tree_node_locate_backward,
+      NULL,
       &state);
 
-#ifdef NDEBUG
-  if (NULL != state.result)
-  {
-    size_t *current = path_copy;
-    size_t * const end = path_copy + path_length;
-
-    while (end != current)
-    {
-      assert(0 == *current);
-      ++current;
-    }
-  }
-#endif
-
-  free(path_copy);
+  assert(state.path_length == path_length);
+  assert(state.path == path);
+  assert(state.count == 0);
 
   return state.result;
 }
@@ -578,7 +589,7 @@ typedef struct _write_state_t
 } write_state_t;
 
 static
-traverse_status_t
+int
 write_pre_visitor(
     list_tree_node_t *node,
     void *raw_state)
@@ -593,15 +604,15 @@ write_pre_visitor(
     }
   }
 
-  int result = state->writer(
+  state->writer(
       state->output,
       list_tree_get_data(node));
 
-  return result ? traverse_ok : traverse_break;
+  return 1;
 }
 
 static
-traverse_status_t
+int
 write_descent(
     void *raw_state)
 {
@@ -611,11 +622,11 @@ write_descent(
     fputs(state->opening_tag, state->output);
 
   ++ state->level;
-  return traverse_ok;
+  return 1;
 }
 
 static
-traverse_status_t
+void
 write_ascent(
     void *raw_state)
 {
@@ -625,10 +636,9 @@ write_ascent(
     fputs(state->closing_tag, state->output);
 
   -- state->level;
-  return traverse_ok;
 }
 
-int
+void
 list_tree_write(
     list_tree_node_t *root,
     data_writer_t writer,
@@ -647,14 +657,14 @@ list_tree_write(
     closing_tag
   };
 
-  traverse_status_t result = list_tree_traverse_depth(
+  list_tree_traverse_depth(
       root,
       write_pre_visitor,
       write_descent,
       write_ascent,
       NULL,
+      NULL,
+      NULL,
       &state);
-
-  return result == traverse_ok;
 }
 

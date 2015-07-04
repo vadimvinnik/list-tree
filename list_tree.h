@@ -30,31 +30,30 @@ typedef
       void *state,
       void **data);
 
-/* See list_tree_traverse_depth for more detail */
-enum _traverse_status_t
-{
-  traverse_ok,
-  traverse_skip_this,
-  traverse_skip_level,
-  traverse_break
-};
-
+/* Callback before visiting a subtree */
 typedef
-  enum _traverse_status_t
-  traverse_status_t;
-
-/* Callback before and after visiting a subtree */
-typedef
-  traverse_status_t
-  (*list_tree_visitor_t)(
+  int
+  (*list_tree_pre_visitor_t)(
       list_tree_node_t *node,
       void *state);
 
-/*
-   Callback on entering or exiting a subtree */
+/* Callback after visiting a subtree */
 typedef
-  traverse_status_t
-  (*list_tree_level_notifier_t)(
+  void
+  (*list_tree_post_visitor_t)(
+      list_tree_node_t *node,
+      void *state);
+
+/* Callback on moving to a child or next item */
+typedef
+  int
+  (*list_tree_enter_notifier_t)(
+      void *state);
+
+/* Callback on returning from a child or next item */
+typedef
+  void
+  (*list_tree_leave_notifier_t)(
       void *state);
 
 /* Callback to dispose data stored in a node */
@@ -135,33 +134,34 @@ list_tree_dispose(
     - descent;
     - traverse from the first child;
     - ascent;
-  - post_visitor;
-  - traverse from the next node, if any.
+  - if the node has a next node:
+    - forward;
+    - traverse from the next node;
+    - backward;
+  - post_visitor.
 
-  Each callback returns a value of type traverse_status_t
+  pre_visitor, descent and forward callbacks return a value
   indicating the further mode of operation:
-  
-  traverse_ok
-    continue with the next callback in the normal order;
-  traverse_skip_this
-    skip all remaining callbacks for this node;
-  traverse_skip_level
-    skip this level, return to the parent node (if any);
-  traverse_break
-    break the entire traversal process.
-
-  Returns:
-  - traverse_ok if all nodes were visited;
-  - traverse_break if one of callbacks signaled break;
+    - true: continue with other callback in the normal order;
+    - false: skip all remaining callbacks for, respectively:
+      - the current node including its child and next,
+      - the child node,
+      - the next node.
 */
-traverse_status_t
+void
 list_tree_traverse_depth(
     list_tree_node_t *root,
-    list_tree_visitor_t pre_visitor,
-    list_tree_level_notifier_t descent,
-    list_tree_level_notifier_t ascent,
-    list_tree_visitor_t post_visitor,
+    list_tree_pre_visitor_t pre_visitor,
+    list_tree_enter_notifier_t descent,
+    list_tree_leave_notifier_t ascent,
+    list_tree_enter_notifier_t forward,
+    list_tree_leave_notifier_t backward,
+    list_tree_post_visitor_t post_visitor,
     void *state);
+
+int
+enter_false(
+    void *);
 
 /* Various functions */
 size_t
@@ -189,7 +189,7 @@ list_tree_locate(
     size_t path_length);
 
 /* Output */
-int
+void
 list_tree_write(
     list_tree_node_t *root,
     data_writer_t writer,
