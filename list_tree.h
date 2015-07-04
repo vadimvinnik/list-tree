@@ -3,6 +3,22 @@
    The node has a link to a child node.  Since that child, in its
    turn, is a head of a list, this makes a tree.
 
+   This data structure can also be described as a binary tree
+   rotated over 45 degrees counterclockwise:
+
+   root
+   |
+   *-----------*-----------*----...----*
+   |           |           |           |          
+   *---*---*   *---*---*   *---*...    *
+   |   |   |   |   |   |   |   |
+   *   *   *   *   *   *   *   *...
+
+   The library provides API to create, destroy, get&set values
+   from such data structures, as well as a high-level generic
+   traversal algorithm and a number of service functions that
+   are, by the way, specializations of the generic traversal.
+
    Vadim Vinnik, 2015, just for fun
    vadim.vinnik@gmail.com
 */
@@ -127,8 +143,8 @@ list_tree_dispose(
     data_disposer_t data_disposer);
 
 /*
-  Traverse a list-tree in depth-first order invoking call-backs,
-  normally in the following order:
+  Traverse a list-tree in depth-first order invoking user-
+  specified call-backs, normally in the following order:
   - pre_visitor;
   - if the node has a first child:
     - descent;
@@ -140,13 +156,21 @@ list_tree_dispose(
     - backward;
   - post_visitor.
 
-  pre_visitor, descent and forward callbacks return a value
+  Pre_visitor, descent and forward callbacks return a value
   indicating the further mode of operation:
-    - true: continue with other callback in the normal order;
-    - false: skip all remaining callbacks for, respectively:
+    - true (non-0): continue with other callbacks;
+    - false (0): skip all remaining callbacks for, respectively:
       - the current node including its child and next,
       - the child node,
       - the next node.
+
+  Each of the 6 callbacks can be NULL. It is equivalent to
+  passing a function that has no side effects and, in case
+  of pre_visitor, descent and forward, always returns 1.
+
+  Each callback has a state parameter that is a buffer with
+  application-specific data. Callbacks are responsible for
+  interpreting, processing and modifying the state correctly.
 */
 void
 list_tree_traverse_depth(
